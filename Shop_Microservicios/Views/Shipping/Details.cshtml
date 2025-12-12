@@ -1,0 +1,13 @@
+﻿@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<div class="mt-3">
+    <a asp-controller="Shipping"
+       asp-action="Create"
+       asp-route-orderId="@Model.Id"
+       class="btn btn-outline-primary w-100">
+        📦 Crear envío
+    </a>
+</div>

@@ -1,0 +1,46 @@
+﻿@model List<Shop.Web.Models.Api.ProductDto>
+@* Si tu ProductDto está en Shop_Microservicios.Models.Api, usa:
+   @model List<Shop_Microservicios.Models.Api.ProductDto> *@
+
+@{
+    ViewData["Title"] = "Catálogo de productos";
+}
+
+<h2 class="mb-4">Catálogo de productos</h2>
+
+@if (Model == null || !Model.Any())
+{
+    <p>No hay productos para mostrar.</p>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-4 g-4">
+        @foreach (var product in Model)
+        {
+            <div class="col">
+                <div class="card h-100">
+                    @if (!string.IsNullOrEmpty(product.Thumbnail))
+                    {
+                        <img src="@product.Thumbnail" class="card-img-top" alt="@product.Title" />
+                    }
+
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">@product.Title</h5>
+                        <p class="card-text fw-bold">
+                            @product.Price.ToString("C")
+                        </p>
+
+                        <div class="mt-auto">
+                            <a asp-controller="Home"
+                               asp-action="Details"
+                               asp-route-id="@product.Id"
+                               class="btn btn-primary w-100">
+                                Ver detalles
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

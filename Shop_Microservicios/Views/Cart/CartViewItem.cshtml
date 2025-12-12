@@ -1,0 +1,101 @@
+﻿@model List<Shop_Microservicios.Models.CartViewItem>
+
+@{
+    ViewData["Title"] = "Mi carrito";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">🛒 Mi carrito</h2>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info">
+            Tu carrito está vacío.
+        </div>
+
+        <a asp-controller="Home" asp-action="Index" class="btn btn-primary">
+            ← Ir a ver productos
+        </a>
+    }
+    else
+    {
+        var subtotal = Model.Sum(x => x.LineTotal);
+
+        <div class="row">
+            <div class="col-md-8">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th style="width:120px;">Precio</th>
+                            <th style="width:100px;">Cantidad</th>
+                            <th style="width:120px;">Total</th>
+                            <th style="width:120px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        @if (!string.IsNullOrEmpty(item.Thumbnail))
+                                        {
+                                            <img src="@item.Thumbnail" alt="@item.Title"
+                                                 class="img-thumbnail me-2"
+                                                 style="width:60px;height:60px;object-fit:cover;" />
+                                        }
+                                        <div>
+                                            <div class="fw-semibold">@item.Title</div>
+                                            <small class="text-muted">ID: @item.ProductId</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>@item.UnitPrice.ToString("C")</td>
+                                <td>@item.Quantity</td>
+                                <td>@item.LineTotal.ToString("C")</td>
+                                <td>
+                                    <form asp-action="Remove" method="post" class="d-inline">
+                                        <input type="hidden" name="productId" value="@item.ProductId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            Quitar
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Resumen</h5>
+                        <hr />
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal:</span>
+                            <strong>@subtotal.ToString("C")</strong>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-3">
+                            <form asp-action="Clear" method="post">
+                                <button type="submit" class="btn btn-outline-danger">
+                                    Vaciar carrito
+                                </button>
+                            </form>
+
+                            <button class="btn btn-success" disabled>
+                                Finalizar compra (demo)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <a asp-controller="Home" asp-action="Index" class="btn btn-link mt-3">
+                    ← Seguir comprando
+                </a>
+            </div>
+        </div>
+    }
+</div>

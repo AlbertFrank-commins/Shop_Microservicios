@@ -1,0 +1,285 @@
+﻿@model Shop_Microservicios.Models.ViewModels.Orders.OrderDetailsViewModel
+
+@{
+    ViewData["Title"] = $"Orden #{Model.Id}";
+}
+
+<div class="container mt-4">
+
+    <!-- Mensaje de resultado del pago -->
+    @if (ViewBag.PaymentStatus != null)
+    {
+        bool success = string.Equals(
+        (string)ViewBag.PaymentStatus,
+        "APPROVED",
+        System.StringComparison.OrdinalIgnoreCase
+        );
+
+        <div class="alert @(success ? "alert-success" : "alert-danger")" role="alert">
+            @if (success)
+            {
+                <span>✅ Pago realizado correctamente por @ViewBag.PaymentAmount (@ViewBag.PaymentMethod).</span>
+            }
+            else
+            {
+                <span>❌ El pago fue rechazado. Verifica los datos del método de pago e intenta de nuevo.</span>
+            }
+        </div>
+    }
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-1">Orden #@Model.Id</h2>
+            <p class="text-muted mb-0">
+                <strong>Fecha:</strong> @Model.CreatedAt
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <span class="badge
+                @(Model.Status == "PAID" ? "bg-success" :
+                                    Model.Status == "CANCELLED" ? "bg-danger" :
+                                    "bg-warning text-dark")"
+                  style="font-size:1rem;">
+                Estado: @Model.Status
+            </span>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <!-- Resumen + método de pago -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Resumen de pago</h5>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Total de la orden:</span>
+                        <span class="fw-bold fs-5">@Model.TotalAmount.ToString("C")</span>
+                    </div>
+
+                    <small class="text-muted d-block mb-3">
+                        Los precios incluyen los montos registrados al momento de la compra.
+                    </small>
+
+                    <hr />
+
+                    <h6 class="mb-2">Método de pago</h6>
+
+                    @if (Model.Status == "PENDING")
+                    {
+                        <form asp-controller="Orders"
+                              asp-action="Pay"
+                              asp-route-id="@Model.Id"
+                              method="post">
+
+                            <!-- Método: tarjeta / efectivo (demo) -->
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio"
+                                           name="method" id="methodCard" value="CARD" checked />
+                                    <label class="form-check-label" for="methodCard">
+                                        Tarjeta de crédito / débito
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio"
+                                           name="method" id="methodCash" value="CASH" />
+                                    <label class="form-check-label" for="methodCash">
+                                        Pago en efectivo (simulado)
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Datos de tarjeta (solo demo, el backend solo usa cardNumber) -->
+                            <div class="mb-3">
+                                <label class="form-label" for="cardHolder">Nombre del titular</label>
+                                <input type="text" class="form-control" id="cardHolder"
+                                       placeholder="Como aparece en la tarjeta" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="cardNumber">Número de tarjeta</label>
+                                <input type="text" class="form-control" id="cardNumber"
+                                       name="cardNumber"
+                                       placeholder="4111 1111 1111 1112 (demo)" />
+                                <small class="text-muted">
+                                    Para esta demo: si el último dígito es par el pago se APRUEBA, si es impar se RECHAZA.
+                                </small>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <label class="form-label" for="expiry">Fecha de vencimiento</label>
+                                    <input type="text" class="form-control" id="expiry" placeholder="MM/AA" />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label" for="cvv">CVV</label>
+                                    <input type="password" class="form-control" id="cvv" maxlength="4" />
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100">
+                                💳 Pagar ahora
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="mt-2 text-success fw-semibold">
+                            Pago completado o no disponible.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Pautas / instrucciones -->
+        <div class="col-lg-6 mt-3 mt-lg-0">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Pautas para completar tu pago</h5>
+                    <ul class="mb-2">
+                        <li>Verifica que el monto total corresponda a los productos seleccionados.</li>
+                        <li>Si usas tarjeta, asegúrate de que tenga saldo disponible.</li>
+                        <li>Introduce un número de tarjeta válido (para la demo, solo se valida el último dígito).</li>
+                        <li>No compartas estos datos con nadie fuera de esta pantalla.</li>
+                        <li>Si el pago es rechazado, puedes intentar nuevamente con otro número de tarjeta o elegir otro método.</li>
+                    </ul>
+                    <small class="text-muted">
+                        Esta es una simulación de pago para fines académicos. No se están procesando transacciones reales.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    @if (Model.Status == "PAID")
+    {
+        <div class="row mb-4">
+            <div class="col-lg-12">
+                <div class="card shadow-sm border-start border-4 border-primary">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">📦 Envío</h5>
+
+                        @* SI YA EXISTE SHIPPING *@
+                        @if (Model.Shipping != null)
+                        {
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1">
+                                        <strong>Dirección:</strong><br />
+                                        @Model.Shipping.Address
+                                    </p>
+                                    <p class="mb-1">
+                                        <strong>Tracking:</strong>
+                                        <span class="badge bg-secondary">
+                                            @Model.Shipping.TrackingNumber
+                                        </span>
+                                    </p>
+                                </div>
+
+                                <div class="col-md-6 text-md-end">
+                                    <span class="badge
+                                            @(Model.Shipping.Status == "DELIVERED" ? "bg-success" :
+                                                                                Model.Shipping.Status == "SHIPPED" ? "bg-info" :
+                                                                                "bg-warning text-dark")"
+                                  style="font-size:1rem;">
+                                Estado: @Model.Shipping.Status
+                            </span>
+                        </div>
+                    </div>
+                                        }
+                        else
+                        {
+                            @* NO EXISTE SHIPPING → FORMULARIO *@
+                            <form asp-controller="Shipping"
+                                  asp-action="Create"
+                                  method="post"
+                                  class="row g-3">
+
+                                <input type="hidden" name="OrderId" value="@Model.Id" />
+
+                                <div class="col-md-8">
+                                    <label class="form-label">Dirección de entrega</label>
+                                    <input type="text"
+                                           name="Address"
+                                           class="form-control"
+                                           placeholder="Ej: Calle Principal #123, Verón"
+                                           required />
+                                </div>
+
+                                <div class="col-md-4 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        📦 Crear envío
+                                    </button>
+                                </div>
+
+                                <div class="col-12">
+                                    <small class="text-muted">
+                                        El envío se creará automáticamente y se asignará un número de tracking.
+                                    </small>
+                                </div>
+                            </form>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <h4 class="mb-3">Productos</h4>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:50%;">Producto</th>
+                        <th class="text-end" style="width:15%;">Precio unitario</th>
+                        <th class="text-center" style="width:10%;">Cantidad</th>
+                        <th class="text-end" style="width:15%;">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    @if (!string.IsNullOrEmpty(item.Thumbnail))
+                                    {
+                                        <img src="@item.Thumbnail"
+                                             alt="@item.Title"
+                                             class="img-thumbnail me-3"
+                                             style="width:48px;height:48px;object-fit:cover;border-radius:50%;" />
+                                    }
+                                    <div>
+                                        <div class="fw-semibold">@item.Title</div>
+                                        <small class="text-muted">ID: @item.ProductId</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-end">
+                                @item.UnitPrice.ToString("C")
+                            </td>
+                            <td class="text-center">
+                                @item.Quantity
+                            </td>
+                            <td class="text-end">
+                                @item.LineTotal.ToString("C")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a asp-controller="Orders" asp-action="Index" class="btn btn-outline-secondary">
+            ← Volver a mis órdenes
+        </a>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-link">
+            Seguir comprando
+        </a>
+    </div>
+</div>

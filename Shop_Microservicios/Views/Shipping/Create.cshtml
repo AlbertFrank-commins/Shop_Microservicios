@@ -1,0 +1,26 @@
+﻿@model Shop_Microservicios.Models.Api.Shipping.CreateShipmentRequest
+
+@{
+    ViewData["Title"] = "Crear envío";
+}
+
+<div class="container mt-4">
+    <h3>📦 Crear envío</h3>
+
+    <form asp-action="Create" method="post" class="mt-3">
+        <input type="hidden" asp-for="OrderId" />
+
+        <div class="mb-3">
+            <label class="form-label">Dirección</label>
+            <input asp-for="Address" class="form-control" placeholder="Ej: Calle Principal 123, Verón" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            Crear envío
+        </button>
+
+        <a asp-controller="Orders" asp-action="Details" asp-route-id="@Model.OrderId" class="btn btn-link">
+            Cancelar
+        </a>
+    </form>
+</div>
