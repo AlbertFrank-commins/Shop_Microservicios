@@ -1,0 +1,58 @@
+﻿@model Shop_Microservicios.Models.ViewModels.Checkout.CheckoutAddressViewModel
+
+<div class="card shadow-sm p-4">
+    <h3 class="mb-3">📦 Dirección de envío</h3>
+
+    <form asp-controller="Checkout" asp-action="Address" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="OrderId" />
+
+        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Nombre y apellido</label>
+                <input class="form-control" asp-for="FullName" />
+                <span asp-validation-for="FullName" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Correo</label>
+                <input class="form-control" asp-for="Email" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Teléfono</label>
+                <input class="form-control" asp-for="Phone" />
+                <span asp-validation-for="Phone" class="text-danger"></span>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Dirección</label>
+                <input class="form-control" asp-for="AddressLine1" placeholder="Ej: Calle Principal #123, Verón" />
+                <span asp-validation-for="AddressLine1" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Ciudad</label>
+                <input class="form-control" asp-for="City" />
+                <span asp-validation-for="City" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Código Postal</label>
+                <input class="form-control" asp-for="PostalCode" />
+                <span asp-validation-for="PostalCode" class="text-danger"></span>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mt-4">
+            Continuar a pago →
+        </button>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

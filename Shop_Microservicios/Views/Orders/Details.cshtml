@@ -2,30 +2,26 @@
 
 @{
     ViewData["Title"] = $"Orden #{Model.Id}";
+
+    string orderBadge = Model.Status == "PAID" ? "bg-success"
+        : Model.Status == "CANCELLED" ? "bg-danger"
+        : "bg-warning text-dark";
 }
 
 <div class="container mt-4">
 
-    <!-- Mensaje de resultado del pago -->
+    @* (Opcional) Mensaje de resultado del pago si llegas redirigido *@
     @if (ViewBag.PaymentStatus != null)
     {
-        bool success = string.Equals(
-        (string)ViewBag.PaymentStatus,
-        "APPROVED",
-        System.StringComparison.OrdinalIgnoreCase
-        );
+        bool success = string.Equals((string)ViewBag.PaymentStatus, "APPROVED",
+        System.StringComparison.OrdinalIgnoreCase);
 
         <div class="alert @(success ? "alert-success" : "alert-danger")" role="alert">
-            @if (success)
-            {
-                <span>✅ Pago realizado correctamente por @ViewBag.PaymentAmount (@ViewBag.PaymentMethod).</span>
-            }
-            else
-            {
-                <span>❌ El pago fue rechazado. Verifica los datos del método de pago e intenta de nuevo.</span>
-            }
-        </div>
-    }
+            @(success
+                    ? $"✅ Pago realizado correctamente por {ViewBag.PaymentAmount} ({ViewBag.PaymentMethod})."
+                    : "❌ El pago fue rechazado. Verifica los datos e intenta de nuevo.")
+    </div>
+        }
 
     <div class="row mb-4">
         <div class="col-md-8">
@@ -34,23 +30,20 @@
                 <strong>Fecha:</strong> @Model.CreatedAt
             </p>
         </div>
+
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
-            <span class="badge
-                @(Model.Status == "PAID" ? "bg-success" :
-                                    Model.Status == "CANCELLED" ? "bg-danger" :
-                                    "bg-warning text-dark")"
-                  style="font-size:1rem;">
+            <span class="badge @orderBadge" style="font-size:1rem;">
                 Estado: @Model.Status
             </span>
         </div>
     </div>
 
     <div class="row mb-4">
-        <!-- Resumen + método de pago -->
+        <!-- Resumen -->
         <div class="col-lg-6">
             <div class="card shadow-sm">
                 <div class="card-body">
-                    <h5 class="card-title mb-3">Resumen de pago</h5>
+                    <h5 class="card-title mb-3">Resumen</h5>
 
                     <div class="d-flex justify-content-between mb-2">
                         <span>Total de la orden:</span>
@@ -63,168 +56,59 @@
 
                     <hr />
 
-                    <h6 class="mb-2">Método de pago</h6>
-
-                    @if (Model.Status == "PENDING")
-                    {
-                        <form asp-controller="Orders"
-                              asp-action="Pay"
-                              asp-route-id="@Model.Id"
-                              method="post">
-
-                            <!-- Método: tarjeta / efectivo (demo) -->
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio"
-                                           name="method" id="methodCard" value="CARD" checked />
-                                    <label class="form-check-label" for="methodCard">
-                                        Tarjeta de crédito / débito
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio"
-                                           name="method" id="methodCash" value="CASH" />
-                                    <label class="form-check-label" for="methodCash">
-                                        Pago en efectivo (simulado)
-                                    </label>
-                                </div>
-                            </div>
-
-                            <!-- Datos de tarjeta (solo demo, el backend solo usa cardNumber) -->
-                            <div class="mb-3">
-                                <label class="form-label" for="cardHolder">Nombre del titular</label>
-                                <input type="text" class="form-control" id="cardHolder"
-                                       placeholder="Como aparece en la tarjeta" />
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label" for="cardNumber">Número de tarjeta</label>
-                                <input type="text" class="form-control" id="cardNumber"
-                                       name="cardNumber"
-                                       placeholder="4111 1111 1111 1112 (demo)" />
-                                <small class="text-muted">
-                                    Para esta demo: si el último dígito es par el pago se APRUEBA, si es impar se RECHAZA.
-                                </small>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-6">
-                                    <label class="form-label" for="expiry">Fecha de vencimiento</label>
-                                    <input type="text" class="form-control" id="expiry" placeholder="MM/AA" />
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label" for="cvv">CVV</label>
-                                    <input type="password" class="form-control" id="cvv" maxlength="4" />
-                                </div>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary w-100">
-                                💳 Pagar ahora
-                            </button>
-                        </form>
-                    }
-                    else
-                    {
-                        <div class="mt-2 text-success fw-semibold">
-                            Pago completado o no disponible.
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-
-        <!-- Pautas / instrucciones -->
-        <div class="col-lg-6 mt-3 mt-lg-0">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">Pautas para completar tu pago</h5>
-                    <ul class="mb-2">
-                        <li>Verifica que el monto total corresponda a los productos seleccionados.</li>
-                        <li>Si usas tarjeta, asegúrate de que tenga saldo disponible.</li>
-                        <li>Introduce un número de tarjeta válido (para la demo, solo se valida el último dígito).</li>
-                        <li>No compartas estos datos con nadie fuera de esta pantalla.</li>
-                        <li>Si el pago es rechazado, puedes intentar nuevamente con otro número de tarjeta o elegir otro método.</li>
-                    </ul>
-                    <small class="text-muted">
-                        Esta es una simulación de pago para fines académicos. No se están procesando transacciones reales.
-                    </small>
-                </div>
-            </div>
-        </div>
-    </div>
-    @if (Model.Status == "PAID")
-    {
-        <div class="row mb-4">
-            <div class="col-lg-12">
-                <div class="card shadow-sm border-start border-4 border-primary">
-                    <div class="card-body">
-                        <h5 class="card-title mb-3">📦 Envío</h5>
-
-                        @* SI YA EXISTE SHIPPING *@
-                        @if (Model.Shipping != null)
+                    <div class="d-flex gap-2">
+                        @if (Model.Status == "PENDING")
                         {
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p class="mb-1">
-                                        <strong>Dirección:</strong><br />
-                                        @Model.Shipping.Address
-                                    </p>
-                                    <p class="mb-1">
-                                        <strong>Tracking:</strong>
-                                        <span class="badge bg-secondary">
-                                            @Model.Shipping.TrackingNumber
-                                        </span>
-                                    </p>
-                                </div>
+                            <a class="btn btn-primary flex-fill"
+                               asp-controller="Checkout"
+                               asp-action="Address"
+                               asp-route-orderId="@Model.Id">
+                                Continuar checkout →
+                            </a>
 
-                                <div class="col-md-6 text-md-end">
-                                    <span class="badge
-                                            @(Model.Shipping.Status == "DELIVERED" ? "bg-success" :
-                                                                                Model.Shipping.Status == "SHIPPED" ? "bg-info" :
-                                                                                "bg-warning text-dark")"
-                                  style="font-size:1rem;">
-                                Estado: @Model.Shipping.Status
-                            </span>
-                        </div>
-                    </div>
-                                        }
-                        else
-                        {
-                            @* NO EXISTE SHIPPING → FORMULARIO *@
-                            <form asp-controller="Shipping"
-                                  asp-action="Create"
+                            <form asp-controller="Orders"
+                                  asp-action="Cancel"
+                                  asp-route-id="@Model.Id"
                                   method="post"
-                                  class="row g-3">
-
-                                <input type="hidden" name="OrderId" value="@Model.Id" />
-
-                                <div class="col-md-8">
-                                    <label class="form-label">Dirección de entrega</label>
-                                    <input type="text"
-                                           name="Address"
-                                           class="form-control"
-                                           placeholder="Ej: Calle Principal #123, Verón"
-                                           required />
-                                </div>
-
-                                <div class="col-md-4 d-flex align-items-end">
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        📦 Crear envío
-                                    </button>
-                                </div>
-
-                                <div class="col-12">
-                                    <small class="text-muted">
-                                        El envío se creará automáticamente y se asignará un número de tracking.
-                                    </small>
-                                </div>
+                                  class="flex-fill">
+                                @Html.AntiForgeryToken()
+                                <button type="submit"
+                                        class="btn btn-outline-danger w-100"
+                                        onclick="return confirm('¿Seguro que deseas cancelar esta orden?');">
+                                    Cancelar orden
+                                </button>
                             </form>
+                        }
+                        else if (Model.Status == "PAID")
+                        {
+                            <span class="text-success fw-semibold">✅ Orden pagada.</span>
+                        }
+                        else if (Model.Status == "CANCELLED")
+                        {
+                            <span class="text-danger fw-semibold">❌ Orden cancelada.</span>
                         }
                     </div>
                 </div>
             </div>
         </div>
-    }
+
+        <!-- Info -->
+        <div class="col-lg-6 mt-3 mt-lg-0">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Información</h5>
+                    <ul class="mb-2">
+                        <li>Para pagar debes completar el checkout (Dirección → Pago).</li>
+                        <li>Las órdenes pendientes pueden cancelarse.</li>
+                        <li>Una orden pagada no debería poder cancelarse.</li>
+                    </ul>
+                    <small class="text-muted">
+                        Proyecto académico: pagos simulados.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <h4 class="mb-3">Productos</h4>
 
@@ -258,15 +142,9 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="text-end">
-                                @item.UnitPrice.ToString("C")
-                            </td>
-                            <td class="text-center">
-                                @item.Quantity
-                            </td>
-                            <td class="text-end">
-                                @item.LineTotal.ToString("C")
-                            </td>
+                            <td class="text-end">@item.UnitPrice.ToString("C")</td>
+                            <td class="text-center">@item.Quantity</td>
+                            <td class="text-end">@item.LineTotal.ToString("C")</td>
                         </tr>
                     }
                 </tbody>

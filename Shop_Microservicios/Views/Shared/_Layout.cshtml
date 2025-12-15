@@ -1,46 +1,104 @@
-﻿<!DOCTYPE html>
+﻿@{
+    // ✅ Ocultar navbar en pantallas públicas
+    // (ajusta la lista si quieres ocultarlo en otras)
+    var ctrl = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "").ToLower();
+    var action = (ViewContext.RouteData.Values["action"]?.ToString() ?? "").ToLower();
+
+    bool hideNavbar =
+        ctrl == "account" && (action == "login" || action == "register");
+}
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Shop_Microservicios</title>
+    <title>@ViewData["Title"] - Shop</title>
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Shop_Microservicios.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
 </head>
+
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Shop_Microservicios</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
+
+    @if (!hideNavbar)
+    {
+        <header>
+            <!-- ✅ Navbar -->
+            <nav class="navbar navbar-expand-sm navbar-dark app-navbar mb-3">
+                <div class="container-fluid">
+                    <a class="navbar-brand fw-bold d-flex align-items-center gap-2"
+                       asp-controller="Home" asp-action="Index">
+                        <span style="width:10px;height:10px;border-radius:50%;background:var(--accent);display:inline-block;"></span>
+                        Shop
+                    </a>
+
+                    <form class="d-none d-md-flex flex-grow-1 mx-3"
+                          asp-controller="Home" asp-action="Index" method="get">
+                        <div class="input-group">
+                            <input type="text" name="q" class="form-control"
+                                   placeholder="Buscar productos..."
+                                   style="border-radius:999px 0 0 999px; border:0;" />
+                            <button class="btn btn-accent" type="submit"
+                                    style="border-radius:0 999px 999px 0;">
+                                🔎
+                            </button>
+                        </div>
+                    </form>
+
+                    <button class="navbar-toggler" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#topNav">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+
+                    <div class="navbar-collapse collapse" id="topNav">
+                        <ul class="navbar-nav ms-auto align-items-sm-center gap-2">
+                            <li class="nav-item">
+                                <a class="nav-link text-white-50"
+                                   asp-controller="Home" asp-action="Index">Productos</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="btn btn-sm btn-outline-light"
+                                   asp-controller="Orders" asp-action="Index">Mis Órdenes</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="btn btn-sm btn-accent"
+                                   asp-controller="Cart" asp-action="Index">🛒 Carrito</a>
+                            </li>
+                        </ul>
+
+                        <form class="d-md-none mt-3"
+                              asp-controller="Home" asp-action="Index" method="get">
+                            <div class="input-group">
+                                <input type="text" name="q" class="form-control"
+                                       placeholder="Buscar productos..." />
+                                <button class="btn btn-accent" type="submit">🔎</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
+            </nav>
+        </header>
+    }
+
+    <!-- ✅ IMPORTANTE: RenderBody debe existir -->
+    <div class="container py-3">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - Shop_Microservicios - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
+    @if (!hideNavbar)
+    {
+        <footer class="border-top mt-5 py-4 text-muted">
+            <div class="container d-flex justify-content-between">
+                <span>&copy; 2025 - Shop</span>
+                <a class="text-muted" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            </div>
+        </footer>
+    }
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

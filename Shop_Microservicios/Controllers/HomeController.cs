@@ -20,16 +20,29 @@ namespace Shop_Microservicios.Controllers
         }
 
         // 🔹 Ahora el Index trae productos de la API
-        public async Task<IActionResult> Index()
+        // 🔹 Index con búsqueda (q) + productos
+        public async Task<IActionResult> Index(string? q)
         {
-            // Llamamos a DummyJSON (o tu API de productos) a través de ProductsApiClient
             List<ProductDto> products = await _productsApi.GetAllAsync();
 
-            // Puedes limitar los resultados si quieres:
-            // products = products.Take(20).ToList();
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                var query = q.Trim().ToLower();
 
-            return View(products);   // La vista recibirá List<ProductDto>
+                products = products
+                    .Where(p =>
+                        (!string.IsNullOrEmpty(p.Title) && p.Title.ToLower().Contains(query)) ||
+                        (!string.IsNullOrEmpty(p.Description) && p.Description.ToLower().Contains(query)) ||
+                        (!string.IsNullOrEmpty(p.Brand) && p.Brand.ToLower().Contains(query)) ||
+                        (!string.IsNullOrEmpty(p.Category) && p.Category.ToLower().Contains(query))
+                    )
+                    .ToList();
+            }
+
+            ViewBag.Query = q;
+            return View(products);
         }
+
 
         public IActionResult Privacy()
         {

@@ -1,0 +1,58 @@
+﻿@model Shop_Microservicios.Models.Api.Orders.OrderResponse
+@{
+    ViewData["Title"] = "Checkout - Confirmación";
+    var ship = ViewBag.Shipping as Shop_Microservicios.Models.Api.Shipping.ShipmentResponse;
+}
+
+<div class="container mt-4">
+    <div class="app-card p-4">
+
+        <h3 class="mb-2">✅ Confirmación</h3>
+        <p class="text-muted">Orden #@Model.Id</p>
+
+        @if (ViewBag.PaymentStatus != null)
+        {
+            bool ok = string.Equals((string)ViewBag.PaymentStatus, "APPROVED", System.StringComparison.OrdinalIgnoreCase);
+
+            <div class="alert @(ok ? "alert-success" : "alert-danger")">
+                @(ok ? $"Pago aprobado: {ViewBag.PaymentAmount} ({ViewBag.PaymentMethod})"
+                            : "Pago rechazado. Intenta nuevamente.")
+        </div>
+                }
+
+        <div class="row g-3 mt-2">
+            <div class="col-md-6">
+                <div class="app-card p-3">
+                    <div class="fw-bold mb-2">📦 Envío</div>
+                    @if (ship != null)
+                    {
+                        <div><strong>Dirección:</strong> @ship.Address</div>
+                        <div><strong>Tracking:</strong> <span class="badge bg-secondary">@ship.TrackingNumber</span></div>
+                        <div><strong>Estado:</strong> @ship.Status</div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">No se encontró envío para esta orden.</div>
+                    }
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="app-card p-3">
+                    <div class="fw-bold mb-2">🧾 Resumen</div>
+                    <div><strong>Total:</strong> @Model.TotalAmount.ToString("C")</div>
+                    <div><strong>Estado Orden:</strong> @Model.Status</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <a asp-controller="Orders" asp-action="Details" asp-route-id="@Model.Id" class="btn btn-primary">
+                Ver mi orden
+            </a>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
+                Seguir comprando
+            </a>
+        </div>
+    </div>
+</div>

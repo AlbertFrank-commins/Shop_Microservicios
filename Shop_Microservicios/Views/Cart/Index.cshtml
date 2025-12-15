@@ -1,104 +1,123 @@
 ﻿@model List<Shop_Microservicios.Models.CartViewItem>
-@using System.Linq
 
 @{
     ViewData["Title"] = "Mi carrito";
 }
 
 <div class="container mt-4">
-    <h2 class="mb-4">🛒 Mi carrito</h2>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="m-0">🛒 Mi carrito</h2>
+        <a asp-controller="Home" asp-action="Index" class="text-decoration-none">
+            Seguir comprando →
+        </a>
+    </div>
 
     @if (Model == null || !Model.Any())
     {
-        <div class="alert alert-info">
-            Tu carrito está vacío.
+        <div class="app-card p-4">
+            <div class="alert alert-info m-0">Tu carrito está vacío.</div>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary mt-3">
+                ← Ir a ver productos
+            </a>
         </div>
-
-        <a asp-controller="Home" asp-action="Index" class="btn btn-primary">
-            ← Ir a ver productos
-        </a>
     }
     else
     {
         var subtotal = Model.Sum(x => x.LineTotal);
 
-        <div class="row">
-            <div class="col-md-8">
-                <table class="table table-striped align-middle">
-                    <thead>
-                        <tr>
-                            <th>Producto</th>
-                            <th style="width:120px;">Precio</th>
-                            <th style="width:100px;">Cantidad</th>
-                            <th style="width:120px;">Total</th>
-                            <th style="width:120px;"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in Model)
-                        {
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        @if (!string.IsNullOrEmpty(item.Thumbnail))
-                                        {
-                                            <img src="@item.Thumbnail" alt="@item.Title"
-                                                 class="img-thumbnail me-2"
-                                                 style="width:60px;height:60px;object-fit:cover;" />
-                                        }
-                                        <div>
-                                            <div class="fw-semibold">@item.Title</div>
-                                            <small class="text-muted">ID: @item.ProductId</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>@item.UnitPrice.ToString("C")</td>
-                                <td>@item.Quantity</td>
-                                <td>@item.LineTotal.ToString("C")</td>
-                                <td>
-                                    <form asp-action="Remove" method="post" class="d-inline">
-                                        <input type="hidden" name="productId" value="@item.ProductId" />
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            Quitar
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+        <div class="row g-3">
+            <!-- Lista -->
+            <div class="col-lg-8">
+                <div class="app-card p-0">
+                    <div class="p-3 border-bottom">
+                        <div class="fw-bold">Productos</div>
+                        <small class="text-muted">@Model.Count item(s)</small>
+                    </div>
 
-            <div class="col-md-4">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Resumen</h5>
-                        <hr />
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Subtotal:</span>
-                            <strong>@subtotal.ToString("C")</strong>
-                        </div>
-
-                        <div class="d-grid gap-2 mt-3">
-                            <form asp-action="Clear" method="post">
-                                <button type="submit" class="btn btn-outline-danger">
-                                    Vaciar carrito
-                                </button>
-                            </form>
-
-                            <!-- 🔥 Botón real que crea la orden -->
-                            <a asp-controller="Orders"
-                               asp-action="CreateFromCart"
-                               class="btn btn-success">
-                                Finalizar compra / Crear orden
-                            </a>
-                        </div>
+                    <div class="table-responsive">
+                        <table class="table mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-end">Precio</th>
+                                    <th class="text-center">Cant.</th>
+                                    <th class="text-end">Subtotal</th>
+                                    <th class="text-end"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <img src="@item.Thumbnail"
+                                                     style="width:56px;height:56px;object-fit:cover;border-radius:12px;border:1px solid var(--border);" />
+                                                <div>
+                                                    <div class="fw-semibold">@item.Title</div>
+                                                    <small class="text-muted">ID: @item.ProductId</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-end">@item.UnitPrice.ToString("C")</td>
+                                        <td class="text-center">@item.Quantity</td>
+                                        <td class="text-end fw-semibold">@item.LineTotal.ToString("C")</td>
+                                        <td class="text-end">
+                                            <form asp-action="Remove" method="post" class="d-inline">
+                                                <input type="hidden" name="productId" value="@item.ProductId" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    Quitar
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+            </div>
 
-                <a asp-controller="Home" asp-action="Index" class="btn btn-link mt-3">
-                    ← Seguir comprando
-                </a>
+            <!-- Resumen -->
+            <div class="col-lg-4">
+                <div class="app-card p-3">
+                    <h5 class="mb-3">Resumen</h5>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Subtotal</span>
+                        <strong>@subtotal.ToString("C")</strong>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Envío</span>
+                        <strong class="text-muted">Calculado en checkout</strong>
+                    </div>
+
+                    <hr />
+
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="fw-bold">Total</span>
+                        <span class="fw-bold" style="font-size:1.15rem;">@subtotal.ToString("C")</span>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <!-- Checkout -->
+                        <a asp-controller="Checkout" asp-action="Start"
+                           class="btn btn-primary btn-lg">
+                            ✅ Proceder al checkout
+                        </a>
+
+                        <form asp-action="Clear" method="post">
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                Vaciar carrito
+                            </button>
+                        </form>
+                    </div>
+
+                    <small class="text-muted d-block mt-3">
+                        Checkout separado: dirección → pago → confirmación.
+                    </small>
+                </div>
             </div>
         </div>
     }

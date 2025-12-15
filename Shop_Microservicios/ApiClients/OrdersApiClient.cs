@@ -64,5 +64,18 @@ namespace Shop_Microservicios.ApiClients
 
             return await response.Content.ReadFromJsonAsync<OrderResponse>();
         }
+     
+
+       public async Task CancelOrderAsync(long userId, long orderId)
+       {
+        var req = new HttpRequestMessage(HttpMethod.Patch, $"/api/orders/{orderId}/cancel");
+        req.Headers.Add("X-User-Id", userId.ToString());
+        req.Content = JsonContent.Create(new { }); // ✅ body vacío
+
+        var resp = await _httpClient.SendAsync(req);
+        resp.EnsureSuccessStatusCode();
+       }
+
+
     }
 }

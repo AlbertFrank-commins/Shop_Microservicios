@@ -2,11 +2,9 @@
 using Shop.Web.Services;
 using Shop_Microservicios.ApiClients;
 using Shop_Microservicios.Models.Api.Orders;
-using Shop_Microservicios.Services;
 using Shop_Microservicios.Models.Api.Payments;
-using System.Linq;
-using System.Threading.Tasks;
 using Shop_Microservicios.Models.ViewModels.Orders;
+using Shop_Microservicios.Services;
 
 namespace Shop_Microservicios.Controllers
 {
@@ -155,6 +153,16 @@ namespace Shop_Microservicios.Controllers
             return RedirectToAction("Details", new { id });
         }
 
+       [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Cancel(long id)
+        {
+            var userId = GetUserId();
+            await _ordersClient.CancelOrderAsync(userId, id);
+
+            // yo prefiero volver a Index para ver el estado actualizado
+            return RedirectToAction("Index");
+        }
 
 
     }
