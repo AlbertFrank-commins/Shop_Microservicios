@@ -39,6 +39,12 @@ builder.Services.AddHttpClient<ShippingApiClient>(client =>
     client.BaseAddress = new Uri("http://localhost:8085");
 });
 
+builder.Services.AddHttpClient<Shop_Microservicios.ApiClients.RecommendationApiClient>(http =>
+{
+    http.BaseAddress = new Uri(builder.Configuration["Services:Recommendation"]!);
+});
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

@@ -1,4 +1,6 @@
-﻿namespace Shop_Microservicios.Models.ViewModel
+﻿using Shop.Web.Models.Api;
+
+namespace Shop_Microservicios.Models.ViewModel
 {
     public class ProductDetailsViewModel
     {
@@ -10,5 +12,6 @@
         public string Brand { get; set; } = "";
         public string Thumbnail { get; set; } = "";
         public double Rating { get; set; }
+        public List<ProductDto> RelatedProducts { get; set; } = new();
     }
 }
