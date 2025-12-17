@@ -1,0 +1,44 @@
+﻿@model List<Shop_Microservicios.Models.Api.Notification.NotificationDto>
+
+@{
+    ViewData["Title"] = "Notificaciones";
+}
+
+<h2 class="mb-4">🔔 Notificaciones</h2>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-light border">
+        No tienes notificaciones.
+    </div>
+}
+else
+{
+    <div class="list-group">
+        @foreach (var n in Model)
+        {
+            <div class="list-group-item d-flex justify-content-between align-items-start
+                                @(n.Status != "READ" ? "list-group-item-warning" : "")">
+
+                <div>
+                    <h6 class="mb-1">@n.Title</h6>
+                    <p class="mb-1">@n.Message</p>
+                    <small class="text-muted">
+                        @n.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                    </small>
+                </div>
+
+                @if (n.Status != "READ")
+                {
+                    <form asp-action="Read"
+                          asp-route-id="@n.Id"
+                          method="post">
+                        <button class="btn btn-sm btn-outline-primary">
+                            Marcar leído
+                        </button>
+                    </form>
+                }
+            </div>
+        }
+    </div>
+}
