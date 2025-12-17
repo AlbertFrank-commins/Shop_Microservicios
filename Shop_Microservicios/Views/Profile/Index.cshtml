@@ -1,25 +1,18 @@
 ﻿@{
-    ViewData["Title"] = "Mi Perfil";
+    ViewData["Title"] = "Perfil";
 }
 
 <div class="container mt-4">
-    <h2 class="mb-3">👤 Mi Perfil</h2>
+    <h2>👤 Perfil</h2>
 
-    <div class="card p-3 shadow-sm">
-        <p class="mb-1"><strong>UserId:</strong> @ViewBag.UserId</p>
-        <p class="mb-1"><strong>Email:</strong> @ViewBag.Email</p>
-
-        <hr />
-
-        <div class="d-flex gap-2">
-            <a class="btn btn-outline-primary"
-               asp-controller="Orders" asp-action="Index">Mis Órdenes</a>
-
-            <a class="btn btn-outline-secondary"
-               asp-controller="Notifications" asp-action="Inbox">Notificaciones</a>
-
-            <a class="btn btn-danger"
-               asp-controller="Account" asp-action="Logout">Cerrar sesión</a>
+    <div class="card mt-3">
+        <div class="card-body">
+            <p><b>UserId:</b> @ViewBag.UserId</p>
+            <p><b>Email:</b> @ViewBag.Email</p>
         </div>
     </div>
 </div>
+<a class="btn btn-danger mt-3"
+   asp-controller="Account" asp-action="Logout">
+    Salir
+</a>

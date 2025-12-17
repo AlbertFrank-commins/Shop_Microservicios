@@ -1,10 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Shop_Microservicios.ApiClients;
+using Shop_Microservicios.Models.Api.Notification;
 using Shop_Microservicios.Models.Api.Orders;
 using Shop_Microservicios.Models.Api.Payments;
 using Shop_Microservicios.Models.ViewModels.Checkout;
 using Shop_Microservicios.Services;
+using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Shop_Microservicios.Controllers
 {
@@ -13,24 +17,37 @@ namespace Shop_Microservicios.Controllers
         private readonly CartApiClient _cartClient;
         private readonly OrdersApiClient _ordersClient;
         private readonly PaymentsApiClient _paymentsClient;
+        private readonly NotificationApiClient _notificationApi;
 
         public CheckoutController(
             CartApiClient cartClient,
             OrdersApiClient ordersClient,
-            PaymentsApiClient paymentsClient)
+            PaymentsApiClient paymentsClient,
+            NotificationApiClient notificationApi)
         {
             _cartClient = cartClient;
             _ordersClient = ordersClient;
             _paymentsClient = paymentsClient;
+            _notificationApi = notificationApi;
         }
 
         private long GetUserId()
         {
             var userIdCookie = Request.Cookies["userId"];
             if (string.IsNullOrEmpty(userIdCookie))
-                throw new System.Exception("Usuario no autenticado (cookie userId vacía)");
+                throw new Exception("Usuario no autenticado (cookie userId vacía)");
 
             return long.Parse(userIdCookie);
+        }
+
+        private string? GetUserEmail()
+        {
+            // Prioridad: cookie persistida por Login/Address
+            if (Request.Cookies.TryGetValue("email", out var email) && !string.IsNullOrWhiteSpace(email))
+                return email.Trim();
+
+            // Fallback: TempData (si venía de Address)
+            return TempData["Email"]?.ToString();
         }
 
         // START: crea orden y manda a Address
@@ -66,7 +83,7 @@ namespace Shop_Microservicios.Controllers
             return View(new CheckoutAddressViewModel { OrderId = orderId });
         }
 
-        // ✅ POST Address (NO borra, NO vuelve vacío)
+        // ✅ POST Address
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Address(CheckoutAddressViewModel vm)
@@ -74,7 +91,6 @@ namespace Shop_Microservicios.Controllers
             if (!ModelState.IsValid)
                 return View(vm);
 
-            // Guarda como STRING para evitar errores raros de TempData
             TempData["OrderId"] = vm.OrderId.ToString();
             TempData["FullName"] = vm.FullName;
             TempData["Email"] = vm.Email;
@@ -82,6 +98,22 @@ namespace Shop_Microservicios.Controllers
             TempData["AddressLine1"] = vm.AddressLine1;
             TempData["City"] = vm.City;
             TempData["PostalCode"] = vm.PostalCode;
+
+            // ✅ Persistir email para Pay()
+            if (!string.IsNullOrWhiteSpace(vm.Email))
+            {
+                Response.Cookies.Append(
+                    "email",
+                    vm.Email.Trim(),
+                    new CookieOptions
+                    {
+                        HttpOnly = false,
+                        Secure = false,
+                        SameSite = SameSiteMode.Lax,
+                        Expires = DateTimeOffset.UtcNow.AddDays(7)
+                    }
+                );
+            }
 
             return RedirectToAction(nameof(Payment), new { orderId = vm.OrderId });
         }
@@ -94,24 +126,20 @@ namespace Shop_Microservicios.Controllers
             var order = await _ordersClient.GetOrderByIdAsync(userId, orderId);
             return View(order);
         }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Pay(CheckoutPaymentViewModel model)
         {
-            // 1️⃣ Validar formulario
             if (!ModelState.IsValid)
-            {
                 return View("Payment", model);
-            }
 
             var userId = GetUserId();
 
-            // 2️⃣ Obtener la orden
             var order = await _ordersClient.GetOrderByIdAsync(userId, model.OrderId);
             if (order == null)
                 return NotFound();
 
-            // 3️⃣ Crear el request de pago
             var paymentRequest = new CreatePaymentRequest
             {
                 OrderId = order.Id,
@@ -120,16 +148,72 @@ namespace Shop_Microservicios.Controllers
                 CardNumber = model.CardNumber
             };
 
-            // 4️⃣ Llamar al microservicio de pagos
             var payment = await _paymentsClient.CreatePaymentAsync(userId, paymentRequest);
 
-            // 5️⃣ Guardar info para la vista Review (opcional)
             TempData["PaymentStatus"] = payment.Status ?? "";
             TempData["PaymentAmount"] = payment.Amount.ToString("0.00");
             TempData["PaymentMethod"] = payment.Method ?? "";
 
-            return RedirectToAction("Review", "Checkout", new { orderId = order.Id });
+            // ✅ Determinar si se considera pagado (MVP robusto)
+            var status = (payment.Status ?? "").Trim().ToUpperInvariant();
+            bool paid = status != "FAILED" && status != "CANCELLED" && status != "DECLINED";
 
+            if (paid)
+            {
+                var email = GetUserEmail();
+
+                // ✅ 1) IN_APP siempre (best-effort)
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _notificationApi.SendEventAsync(new NotificationEventRequest
+                        {
+                            UserId = (int)userId, // 👈 FIX
+                            Type = "PAYMENT_SUCCESS",
+                            Title = "Pago aprobado ✅",
+                            Message = $"Tu orden #{order.Id} fue pagada correctamente.",
+                            Channel = "IN_APP",
+                            RequestId = $"payok-{order.Id}-{Guid.NewGuid():N}",
+                            Source = "MVC"
+                        });
+                        ;
+                    }
+                    catch { }
+                });
+
+                // ✅ 2) EMAIL solo si hay correo
+                if (!string.IsNullOrWhiteSpace(email))
+                {
+                    string receiptHtml = BuildReceiptHtml(
+                        orderId: order.Id,
+                        total: order.TotalAmount,
+                        paymentMethod: payment.Method ?? "CARD",
+                        customerEmail: email
+                    );
+
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _notificationApi.SendEventAsync(new NotificationEventRequest
+                            {
+                                UserId = (int)userId,
+                                Type = "RECEIPT_EMAIL",
+                                Title = "Recibo de tu compra",
+                                Message = receiptHtml,
+                                Channel = "EMAIL",
+                                Email = email,
+                                RequestId = $"receipt-{order.Id}-{Guid.NewGuid():N}",
+                                Source = "MVC"
+                            });
+                        }
+                        catch { }
+                    });
+                }
+            }
+
+            return RedirectToAction("Review", "Checkout", new { orderId = order.Id });
         }
 
         [HttpGet]
@@ -137,20 +221,43 @@ namespace Shop_Microservicios.Controllers
         {
             var userId = GetUserId();
 
-            // Trae la orden para mostrar resumen
             var order = await _ordersClient.GetOrderByIdAsync(userId, orderId);
             if (order == null)
                 return NotFound();
 
-            // Si estás usando TempData para mostrar resultados (PaymentStatus, etc.)
             ViewBag.PaymentStatus = TempData["PaymentStatus"]?.ToString();
             ViewBag.PaymentAmount = TempData["PaymentAmount"]?.ToString();
             ViewBag.PaymentMethod = TempData["PaymentMethod"]?.ToString();
 
-
-            return View(order); // Renderiza Views/Checkout/Review.cshtml
+            return View(order);
         }
 
-        // (Pay/Review lo ajustamos después)
+        private static string BuildReceiptHtml(long orderId, decimal total, string paymentMethod, string customerEmail)
+        {
+            return $@"
+<div style='font-family:Arial,sans-serif;max-width:640px;margin:auto;border:1px solid #eee;border-radius:10px;overflow:hidden;'>
+  <div style='background:#0d6efd;color:white;padding:16px;'>
+    <h2 style='margin:0;'>Shop - Recibo de compra</h2>
+  </div>
+
+  <div style='padding:16px;'>
+    <p style='margin-top:0;'>Gracias por tu compra.</p>
+
+    <table style='width:100%;border-collapse:collapse;'>
+      <tr><td style='padding:8px 0;'><b>Orden</b></td><td style='padding:8px 0;text-align:right;'>#{orderId}</td></tr>
+      <tr><td style='padding:8px 0;'><b>Total</b></td><td style='padding:8px 0;text-align:right;'><b>{total:C}</b></td></tr>
+      <tr><td style='padding:8px 0;'><b>Método</b></td><td style='padding:8px 0;text-align:right;'>{paymentMethod}</td></tr>
+      <tr><td style='padding:8px 0;'><b>Email</b></td><td style='padding:8px 0;text-align:right;'>{customerEmail}</td></tr>
+      <tr><td style='padding:8px 0;'><b>Fecha</b></td><td style='padding:8px 0;text-align:right;'>{DateTime.Now:dd/MM/yyyy HH:mm}</td></tr>
+    </table>
+
+    <hr style='border:none;border-top:1px solid #eee;margin:16px 0;' />
+
+    <p style='color:#666;margin:0;font-size:12px;'>
+      Este correo confirma tu compra. Si no reconoces esta transacción, contacta soporte.
+    </p>
+  </div>
+</div>";
+        }
     }
 }

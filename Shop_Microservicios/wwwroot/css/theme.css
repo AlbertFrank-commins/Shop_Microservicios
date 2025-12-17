@@ -40,3 +40,17 @@ body {
 .table thead th {
     border-bottom: 1px solid rgba(0,0,0,.1);
 }
+
+/* Notificaciones */
+.notif-item {
+    transition: background-color .2s ease, border-color .2s ease;
+}
+
+.notif-unread {
+    background-color: #fff3cd; /* amarillo suave Bootstrap */
+    border-color: #ffe69c;
+}
+
+.notif-read {
+    background-color: #ffffff;
+}

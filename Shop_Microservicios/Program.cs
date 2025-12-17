@@ -44,6 +44,13 @@ builder.Services.AddHttpClient<Shop_Microservicios.ApiClients.RecommendationApiC
     http.BaseAddress = new Uri(builder.Configuration["Services:Recommendation"]!);
 });
 
+var notificationBaseUrl = builder.Configuration["Services:Notification"];
+
+builder.Services.AddHttpClient<NotificationApiClient>(c =>
+{
+    c.BaseAddress = new Uri(notificationBaseUrl!);
+});
+
 
 var app = builder.Build();
 

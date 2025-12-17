@@ -1,11 +1,14 @@
-﻿public class NotificationEventRequest
+﻿namespace Shop_Microservicios.Models.Api.Notification
 {
-    public int UserId { get; set; }
-    public string Type { get; set; } = "";       // "RECEIPT_EMAIL"
-    public string Title { get; set; } = "";
-    public string Message { get; set; } = "";
-    public string Channel { get; set; } = "";    // "EMAIL" o "IN_APP"
-    public string? Email { get; set; }           // requerido si Channel="EMAIL"
-    public string RequestId { get; set; } = "";  // idempotencia
-    public string Source { get; set; } = "MVC";
+    public class NotificationEventRequest
+    {
+        public long UserId { get; set; }   // 👈 IMPORTANTE: long
+        public string Type { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public string Channel { get; set; } = "IN_APP";
+        public string? Email { get; set; }
+        public string RequestId { get; set; } = string.Empty;
+        public string Source { get; set; } = "MVC";
+    }
 }

@@ -6,14 +6,13 @@ namespace Shop_Microservicios.Controllers
     {
         public IActionResult Index()
         {
-            if (!Request.Cookies.TryGetValue("userId", out var uid) || string.IsNullOrWhiteSpace(uid) ||
-                !Request.Cookies.TryGetValue("email", out var email) || string.IsNullOrWhiteSpace(email))
-            {
-                return RedirectToAction("Login", "Account");
-            }
+            // Leemos de cookies (como tu auth actual)
+            var userId = Request.Cookies.TryGetValue("userId", out var id) ? id : "";
+            var email = Request.Cookies.TryGetValue("email", out var em) ? em : "";
 
-            ViewBag.UserId = uid;
+            ViewBag.UserId = userId;
             ViewBag.Email = email;
+
             return View();
         }
     }

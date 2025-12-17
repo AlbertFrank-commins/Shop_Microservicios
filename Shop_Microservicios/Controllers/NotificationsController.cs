@@ -12,7 +12,7 @@ namespace Shop_Microservicios.Controllers
             _notifications = notifications;
         }
 
-        // GET: /Notifications
+        // GET: /Notifications/Inbox
         public async Task<IActionResult> Inbox()
         {
             if (!Request.Cookies.TryGetValue("userId", out var cookie) ||
@@ -27,6 +27,7 @@ namespace Shop_Microservicios.Controllers
 
         // POST: /Notifications/Read/5
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Read(long id)
         {
             await _notifications.MarkReadAsync(id);

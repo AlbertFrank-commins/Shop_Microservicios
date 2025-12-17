@@ -1,11 +1,14 @@
 ﻿@{
     // ✅ Ocultar navbar en pantallas públicas
-    // (ajusta la lista si quieres ocultarlo en otras)
     var ctrl = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "").ToLower();
     var action = (ViewContext.RouteData.Values["action"]?.ToString() ?? "").ToLower();
 
     bool hideNavbar =
         ctrl == "account" && (action == "login" || action == "register");
+
+    // ✅ Cookies básicas (MVP)
+    bool isLoggedIn = Context.Request.Cookies.ContainsKey("userId");
+    var emailCookie = Context.Request.Cookies.TryGetValue("email", out var em) ? em : null;
 }
 
 <!DOCTYPE html>
@@ -54,18 +57,48 @@
 
                     <div class="navbar-collapse collapse" id="topNav">
                         <ul class="navbar-nav ms-auto align-items-sm-center gap-2">
+
                             <li class="nav-item">
                                 <a class="nav-link text-white-50"
                                    asp-controller="Home" asp-action="Index">Productos</a>
                             </li>
+
                             <li class="nav-item">
                                 <a class="btn btn-sm btn-outline-light"
                                    asp-controller="Orders" asp-action="Index">Mis Órdenes</a>
                             </li>
+
                             <li class="nav-item">
                                 <a class="btn btn-sm btn-accent"
                                    asp-controller="Cart" asp-action="Index">🛒 Carrito</a>
                             </li>
+
+                            @if (isLoggedIn)
+                            {
+                                <li class="nav-item">
+                                    <a class="btn btn-sm btn-outline-light"
+                                       asp-controller="Notifications" asp-action="Inbox"
+                                       title="Notificaciones" aria-label="Notificaciones">
+                                        🔔
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="btn btn-sm btn-outline-light"
+                                       asp-controller="Profile" asp-action="Index"
+                                       title="Perfil" aria-label="Perfil">
+                                        👤 Perfil
+                                    </a>
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="nav-item">
+                                    <a class="btn btn-sm btn-outline-light"
+                                       asp-controller="Account" asp-action="Login">Login</a>
+                                </li>
+                            }
+
                         </ul>
 
                         <form class="d-md-none mt-3"
