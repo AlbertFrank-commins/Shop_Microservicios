@@ -64,6 +64,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseMiddleware<Shop_Microservicios.Middleware.ServiceUnavailableMiddleware>();
 
 app.UseRouting();
 

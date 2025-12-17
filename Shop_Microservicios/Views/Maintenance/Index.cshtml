@@ -1,0 +1,15 @@
+﻿@{
+    ViewData["Title"] = "Mantenimiento";
+}
+
+<div class="container mt-5 text-center">
+    <div class="alert alert-warning p-4 shadow-sm">
+        <h3 class="mb-2">🛠️ @ViewBag.MaintenanceService en mantenimiento</h3>
+        <p class="fs-5 mb-0">@ViewBag.MaintenanceMessage</p>
+        <p class="text-muted mt-2">Intenta nuevamente en unos minutos.</p>
+
+        <a asp-controller="Home" asp-action="Index" class="btn btn-primary mt-3">
+            Volver al inicio
+        </a>
+    </div>
+</div>

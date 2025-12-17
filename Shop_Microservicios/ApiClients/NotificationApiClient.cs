@@ -1,77 +1,47 @@
-﻿using System.Net.Http.Json;
-using System.Text.Json;
+﻿using System.Net.Http;
+using System.Net.Http.Json;
 using Shop_Microservicios.Models.Api.Notification;
 
 namespace Shop_Microservicios.ApiClients
 {
-    public class NotificationApiClient
+    public class NotificationApiClient : BaseApiClient
     {
-        private readonly HttpClient _http;
-        private static readonly JsonSerializerOptions _json = new()
-        {
-            PropertyNameCaseInsensitive = true
-        };
+        private readonly string _apiKey;
 
-        public NotificationApiClient(HttpClient http)
+        public NotificationApiClient(HttpClient http, string apiKey)
+            : base(http, "Notificaciones")
         {
-            _http = http;
+            _apiKey = apiKey;
+
+            // Si tu servicio usa apiKey por header
+            if (!string.IsNullOrWhiteSpace(_apiKey))
+            {
+                Http.DefaultRequestHeaders.Remove("X-Api-Key");
+                Http.DefaultRequestHeaders.Add("X-Api-Key", _apiKey);
+            }
         }
 
-        public async Task<List<NotificationDto>> GetInboxAsync(long userId, int limit = 30)
+        public Task<List<NotificationDto>> GetInboxAsync(long userId, int limit = 30, CancellationToken ct = default)
         {
             var url = $"/api/notifications/inbox/{userId}?limit={limit}";
-            var resp = await _http.GetAsync(url);
-            var body = await resp.Content.ReadAsStringAsync();
-
-            if (!resp.IsSuccessStatusCode)
-                throw new Exception($"Notification inbox failed: {(int)resp.StatusCode}\nURL: {url}\nBody: {body}");
-
-            // 1) Intento: lista directa
-            try
-            {
-                var list = JsonSerializer.Deserialize<List<NotificationDto>>(body, _json);
-                if (list != null) return list;
-            }
-            catch { }
-
-            // 2) Intento: paginado Spring => { content: [...] }
-            try
-            {
-                using var doc = JsonDocument.Parse(body);
-                if (doc.RootElement.TryGetProperty("content", out var content))
-                {
-                    var list = JsonSerializer.Deserialize<List<NotificationDto>>(content.GetRawText(), _json);
-                    return list ?? new List<NotificationDto>();
-                }
-            }
-            catch { }
-
-            throw new Exception($"Inbox JSON shape not supported.\nURL: {url}\nBody: {body}");
+            return GetAsync<List<NotificationDto>>(url, ct);
         }
 
-        public async Task MarkReadAsync(long id)
+        public Task MarkReadAsync(long notificationId, CancellationToken ct = default)
         {
-            var url = $"/api/notifications/{id}/read";
-            var resp = await _http.PostAsync(url, content: null);
-            var body = await resp.Content.ReadAsStringAsync();
-
-            if (!resp.IsSuccessStatusCode)
-                throw new Exception($"MarkRead failed: {(int)resp.StatusCode}\nURL: {url}\nBody: {body}");
+            var req = new HttpRequestMessage(HttpMethod.Post, $"/api/notifications/{notificationId}/read");
+            return SendAsync(req, ct);
         }
-        public async Task SendEventAsync(NotificationEventRequest request)
+
+        // 👇 ESTE ES EL QUE TU Checkout YA ESTÁ LLAMANDO
+        public Task SendEventAsync(NotificationEventRequest request, CancellationToken ct = default)
         {
-            var resp = await _http.PostAsJsonAsync(
-                "/api/notifications/events",
-                request
-            );
+            var req = new HttpRequestMessage(HttpMethod.Post, "/api/notifications/events")
+            {
+                Content = JsonContent.Create(request)
+            };
 
-            var body = await resp.Content.ReadAsStringAsync();
-
-            if (!resp.IsSuccessStatusCode)
-                throw new Exception(
-                    $"SendEvent failed: {(int)resp.StatusCode}\nBody: {body}"
-                );
+            return SendAsync(req, ct);
         }
-
     }
 }

@@ -1,36 +1,39 @@
-﻿using System.Net.Http.Json;
+﻿using System.Net.Http;
+using System.Net.Http.Json;
 using Shop_Microservicios.Models.Api.Recommendation;
 
 namespace Shop_Microservicios.ApiClients
 {
-    public class RecommendationApiClient
+    public class RecommendationApiClient : BaseApiClient
     {
-        private readonly HttpClient _http;
-
         public RecommendationApiClient(HttpClient http)
+            : base(http, "Recomendaciones")
         {
-            _http = http;
         }
 
-        public async Task SendEventAsync(RecommendationEventRequest req, CancellationToken ct = default)
+        public Task SendEventAsync(RecommendationEventRequest req, CancellationToken ct = default)
         {
-            var res = await _http.PostAsJsonAsync("/api/recommendations/events", req, ct);
-            res.EnsureSuccessStatusCode();
+            var msg = new HttpRequestMessage(HttpMethod.Post, "/api/recommendations/events")
+            {
+                Content = JsonContent.Create(req)
+            };
+
+            return SendAsync(msg, ct);
         }
 
-        public async Task<List<ProductRefDto>> GetTrendingAsync(int limit = 12, CancellationToken ct = default)
-            => await _http.GetFromJsonAsync<List<ProductRefDto>>($"/api/recommendations/trending?limit={limit}", ct) ?? new();
+        public Task<List<ProductRefDto>> GetTrendingAsync(int limit = 12, CancellationToken ct = default)
+            => GetAsync<List<ProductRefDto>>($"/api/recommendations/trending?limit={limit}", ct);
 
-        public async Task<List<ProductRefDto>> GetRelatedAsync(long productId, string? category, int limit = 8, CancellationToken ct = default)
+        public Task<List<ProductRefDto>> GetRelatedAsync(long productId, string? category, int limit = 8, CancellationToken ct = default)
         {
             var url = $"/api/recommendations/related/{productId}?limit={limit}";
             if (!string.IsNullOrWhiteSpace(category))
                 url += $"&category={Uri.EscapeDataString(category)}";
 
-            return await _http.GetFromJsonAsync<List<ProductRefDto>>(url, ct) ?? new();
+            return GetAsync<List<ProductRefDto>>(url, ct);
         }
 
-        public async Task<List<ProductRefDto>> GetForYouAsync(long userId, int limit = 12, CancellationToken ct = default)
-            => await _http.GetFromJsonAsync<List<ProductRefDto>>($"/api/recommendations/for-you?userId={userId}&limit={limit}", ct) ?? new();
+        public Task<List<ProductRefDto>> GetForYouAsync(long userId, int limit = 12, CancellationToken ct = default)
+            => GetAsync<List<ProductRefDto>>($"/api/recommendations/for-you?userId={userId}&limit={limit}", ct);
     }
 }

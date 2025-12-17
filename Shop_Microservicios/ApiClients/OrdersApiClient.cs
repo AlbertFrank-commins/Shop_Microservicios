@@ -1,81 +1,56 @@
-﻿// ApiClients/OrdersApiClient.cs
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
+﻿using System.Net.Http;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
 using Shop_Microservicios.Models.Api.Orders;
 
 namespace Shop_Microservicios.ApiClients
 {
-    public class OrdersApiClient
+    public class OrdersApiClient : BaseApiClient
     {
-        private readonly HttpClient _httpClient;
-
         public OrdersApiClient(HttpClient httpClient)
+            : base(httpClient, "Órdenes")
         {
-            _httpClient = httpClient;
         }
 
-        public async Task<OrderResponse?> CreateOrderAsync(long userId, CreateOrderRequest request)
+        public Task<OrderResponse?> CreateOrderAsync(long userId, CreateOrderRequest request)
         {
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/orders");
-            httpRequest.Headers.Add("X-User-Id", userId.ToString());
-            httpRequest.Content = JsonContent.Create(request);
+            var req = new HttpRequestMessage(HttpMethod.Post, "/api/orders");
+            req.Headers.Add("X-User-Id", userId.ToString());
+            req.Content = JsonContent.Create(request);
 
-            var response = await _httpClient.SendAsync(httpRequest);
-            response.EnsureSuccessStatusCode();
-
-            return await response.Content.ReadFromJsonAsync<OrderResponse>();
+            return SendAsync<OrderResponse?>(req);
         }
 
-        public async Task<List<OrderResponse>> GetOrdersAsync(long userId)
+        public Task<List<OrderResponse>> GetOrdersAsync(long userId)
         {
-            var httpRequest = new HttpRequestMessage(HttpMethod.Get, "/api/orders");
-            httpRequest.Headers.Add("X-User-Id", userId.ToString());
+            var req = new HttpRequestMessage(HttpMethod.Get, "/api/orders");
+            req.Headers.Add("X-User-Id", userId.ToString());
 
-            var response = await _httpClient.SendAsync(httpRequest);
-            response.EnsureSuccessStatusCode();
-
-            return (await response.Content.ReadFromJsonAsync<List<OrderResponse>>()) ?? new();
+            return SendAsync<List<OrderResponse>>(req);
         }
 
-        public async Task<OrderResponse?> GetOrderByIdAsync(long userId, long orderId)
+        public Task<OrderResponse?> GetOrderByIdAsync(long userId, long orderId)
         {
-            var httpRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/orders/{orderId}");
-            httpRequest.Headers.Add("X-User-Id", userId.ToString());
+            var req = new HttpRequestMessage(HttpMethod.Get, $"/api/orders/{orderId}");
+            req.Headers.Add("X-User-Id", userId.ToString());
 
-            var response = await _httpClient.SendAsync(httpRequest);
-            response.EnsureSuccessStatusCode();
-
-            return await response.Content.ReadFromJsonAsync<OrderResponse>();
+            return SendAsync<OrderResponse?>(req);
         }
 
-        public async Task<OrderResponse?> MarkOrderPaidAsync(long userId, long orderId)
+        public Task<OrderResponse?> MarkOrderPaidAsync(long userId, long orderId)
         {
-            var request = new HttpRequestMessage(
-                HttpMethod.Post,
-                $"/api/orders/{orderId}/pay");
+            var req = new HttpRequestMessage(HttpMethod.Post, $"/api/orders/{orderId}/pay");
+            req.Headers.Add("X-User-Id", userId.ToString());
 
-            request.Headers.Add("X-User-Id", userId.ToString());
-
-            var response = await _httpClient.SendAsync(request);
-            response.EnsureSuccessStatusCode();
-
-            return await response.Content.ReadFromJsonAsync<OrderResponse>();
+            return SendAsync<OrderResponse?>(req);
         }
-     
 
-       public async Task CancelOrderAsync(long userId, long orderId)
-       {
-        var req = new HttpRequestMessage(HttpMethod.Patch, $"/api/orders/{orderId}/cancel");
-        req.Headers.Add("X-User-Id", userId.ToString());
-        req.Content = JsonContent.Create(new { }); // ✅ body vacío
+        public Task CancelOrderAsync(long userId, long orderId)
+        {
+            var req = new HttpRequestMessage(HttpMethod.Patch, $"/api/orders/{orderId}/cancel");
+            req.Headers.Add("X-User-Id", userId.ToString());
+            req.Content = JsonContent.Create(new { }); // body vacío
 
-        var resp = await _httpClient.SendAsync(req);
-        resp.EnsureSuccessStatusCode();
-       }
-
-
+            return SendAsync(req);
+        }
     }
 }

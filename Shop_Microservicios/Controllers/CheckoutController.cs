@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shop_Microservicios.ApiClients;
+using Shop_Microservicios.Exceptions; // 👈 para ServiceUnavailableException
 using Shop_Microservicios.Models.Api.Notification;
 using Shop_Microservicios.Models.Api.Orders;
 using Shop_Microservicios.Models.Api.Payments;
@@ -42,12 +43,10 @@ namespace Shop_Microservicios.Controllers
 
         private string? GetUserEmail()
         {
-            // Prioridad: cookie persistida por Login/Address
             if (Request.Cookies.TryGetValue("email", out var email) && !string.IsNullOrWhiteSpace(email))
                 return email.Trim();
 
-            // Fallback: TempData (si venía de Address)
-            return TempData["Email"]?.ToString();
+            return TempData["Email"]?.ToString()?.Trim();
         }
 
         // START: crea orden y manda a Address
@@ -76,14 +75,12 @@ namespace Shop_Microservicios.Controllers
             return RedirectToAction(nameof(Address), new { orderId = order!.Id });
         }
 
-        // ✅ GET Address
         [HttpGet]
         public IActionResult Address(long orderId)
         {
             return View(new CheckoutAddressViewModel { OrderId = orderId });
         }
 
-        // ✅ POST Address
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Address(CheckoutAddressViewModel vm)
@@ -99,7 +96,6 @@ namespace Shop_Microservicios.Controllers
             TempData["City"] = vm.City;
             TempData["PostalCode"] = vm.PostalCode;
 
-            // ✅ Persistir email para Pay()
             if (!string.IsNullOrWhiteSpace(vm.Email))
             {
                 Response.Cookies.Append(
@@ -118,7 +114,6 @@ namespace Shop_Microservicios.Controllers
             return RedirectToAction(nameof(Payment), new { orderId = vm.OrderId });
         }
 
-        // ✅ GET Payment
         [HttpGet]
         public async Task<IActionResult> Payment(long orderId)
         {
@@ -154,7 +149,6 @@ namespace Shop_Microservicios.Controllers
             TempData["PaymentAmount"] = payment.Amount.ToString("0.00");
             TempData["PaymentMethod"] = payment.Method ?? "";
 
-            // ✅ Determinar si se considera pagado (MVP robusto)
             var status = (payment.Status ?? "").Trim().ToUpperInvariant();
             bool paid = status != "FAILED" && status != "CANCELLED" && status != "DECLINED";
 
@@ -162,27 +156,39 @@ namespace Shop_Microservicios.Controllers
             {
                 var email = GetUserEmail();
 
-                // ✅ 1) IN_APP siempre (best-effort)
+                // ✅ 1) IN_APP (best-effort)
                 _ = Task.Run(async () =>
                 {
                     try
                     {
-                        await _notificationApi.SendEventAsync(new NotificationEventRequest
+                        var req = new NotificationEventRequest
                         {
-                            UserId = (int)userId, // 👈 FIX
+                            // ✅ RECOMENDADO: UserId long
+                            // Si tu DTO en C# es int, cambia el tipo del modelo a long.
+                            // Si no quieres tocar el modelo: UserId = (int)userId;
+                            UserId = userId,
+
                             Type = "PAYMENT_SUCCESS",
                             Title = "Pago aprobado ✅",
                             Message = $"Tu orden #{order.Id} fue pagada correctamente.",
                             Channel = "IN_APP",
                             RequestId = $"payok-{order.Id}-{Guid.NewGuid():N}",
                             Source = "MVC"
-                        });
-                        ;
+                        };
+
+                        await _notificationApi.SendEventAsync(req);
                     }
-                    catch { }
+                    catch (ServiceUnavailableException)
+                    {
+                        // microservicio apagado => NO romper checkout
+                    }
+                    catch
+                    {
+                        // cualquier otra => best-effort
+                    }
                 });
 
-                // ✅ 2) EMAIL solo si hay correo
+                // ✅ 2) EMAIL (best-effort)
                 if (!string.IsNullOrWhiteSpace(email))
                 {
                     string receiptHtml = BuildReceiptHtml(
@@ -196,9 +202,9 @@ namespace Shop_Microservicios.Controllers
                     {
                         try
                         {
-                            await _notificationApi.SendEventAsync(new NotificationEventRequest
+                            var req = new NotificationEventRequest
                             {
-                                UserId = (int)userId,
+                                UserId = userId,
                                 Type = "RECEIPT_EMAIL",
                                 Title = "Recibo de tu compra",
                                 Message = receiptHtml,
@@ -206,9 +212,18 @@ namespace Shop_Microservicios.Controllers
                                 Email = email,
                                 RequestId = $"receipt-{order.Id}-{Guid.NewGuid():N}",
                                 Source = "MVC"
-                            });
+                            };
+
+                            await _notificationApi.SendEventAsync(req);
                         }
-                        catch { }
+                        catch (ServiceUnavailableException)
+                        {
+                            // microservicio apagado => NO romper checkout
+                        }
+                        catch
+                        {
+                            // best-effort
+                        }
                     });
                 }
             }
@@ -258,6 +273,19 @@ namespace Shop_Microservicios.Controllers
     </p>
   </div>
 </div>";
+
+
         }
+
+        private static void BestEffort(Func<Task> work)
+        {
+            _ = Task.Run(async () =>
+            {
+                try { await work(); }
+                catch (ServiceUnavailableException) { }
+                catch { }
+            });
+        }
+
     }
 }

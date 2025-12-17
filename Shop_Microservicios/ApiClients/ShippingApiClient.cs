@@ -1,55 +1,50 @@
-﻿using Shop_Microservicios.Models.Api.Shipping;
+﻿using System.Net.Http;
 using System.Net.Http.Json;
+using Shop_Microservicios.Models.Api.Shipping;
 
-namespace Shop_Microservicios.ApiClients;
-
-public class ShippingApiClient
+namespace Shop_Microservicios.ApiClients
 {
-    private readonly HttpClient _http;
-
-    public ShippingApiClient(HttpClient http)
+    public class ShippingApiClient : BaseApiClient
     {
-        _http = http;
-    }
-
-    private void SetUserHeader(long userId)
-    {
-        _http.DefaultRequestHeaders.Remove("X-User-Id");
-        _http.DefaultRequestHeaders.Add("X-User-Id", userId.ToString());
-    }
-
-    public async Task<ShipmentResponse?> CreateShipmentAsync(long userId, CreateShipmentRequest request)
-    {
-        SetUserHeader(userId);
-        var resp = await _http.PostAsJsonAsync("/api/shipping", request);
-        resp.EnsureSuccessStatusCode();
-        return await resp.Content.ReadFromJsonAsync<ShipmentResponse>();
-    }
-
-    public async Task<ShipmentResponse?> GetByOrderIdAsync(long userId, long orderId)
-    {
-        SetUserHeader(userId);
-        return await _http.GetFromJsonAsync<ShipmentResponse>($"/api/shipping/order/{orderId}");
-    }
-
-    public async Task<ShipmentResponse?> GetByIdAsync(long userId, long id)
-    {
-        SetUserHeader(userId);
-        return await _http.GetFromJsonAsync<ShipmentResponse>($"/api/shipping/{id}");
-    }
-
-    public async Task<ShipmentResponse?> UpdateStatusAsync(long userId, long id, string status)
-    {
-        SetUserHeader(userId);
-
-        var body = new { status };
-        var req = new HttpRequestMessage(HttpMethod.Patch, $"/api/shipping/{id}/status")
+        public ShippingApiClient(HttpClient http)
+            : base(http, "Envíos")
         {
-            Content = JsonContent.Create(body)
-        };
+        }
 
-        var resp = await _http.SendAsync(req);
-        resp.EnsureSuccessStatusCode();
-        return await resp.Content.ReadFromJsonAsync<ShipmentResponse>();
+        public Task<ShipmentResponse?> CreateShipmentAsync(long userId, CreateShipmentRequest request)
+        {
+            var req = new HttpRequestMessage(HttpMethod.Post, "/api/shipping");
+            req.Headers.Add("X-User-Id", userId.ToString());
+            req.Content = JsonContent.Create(request);
+
+            return SendAsync<ShipmentResponse?>(req);
+        }
+
+        public Task<ShipmentResponse?> GetByOrderIdAsync(long userId, long orderId)
+        {
+            var req = new HttpRequestMessage(HttpMethod.Get, $"/api/shipping/order/{orderId}");
+            req.Headers.Add("X-User-Id", userId.ToString());
+
+            return SendAsync<ShipmentResponse?>(req);
+        }
+
+        public Task<ShipmentResponse?> GetByIdAsync(long userId, long id)
+        {
+            var req = new HttpRequestMessage(HttpMethod.Get, $"/api/shipping/{id}");
+            req.Headers.Add("X-User-Id", userId.ToString());
+
+            return SendAsync<ShipmentResponse?>(req);
+        }
+
+        public Task<ShipmentResponse?> UpdateStatusAsync(long userId, long id, string status)
+        {
+            var body = new { status };
+
+            var req = new HttpRequestMessage(HttpMethod.Patch, $"/api/shipping/{id}/status");
+            req.Headers.Add("X-User-Id", userId.ToString());
+            req.Content = JsonContent.Create(body);
+
+            return SendAsync<ShipmentResponse?>(req);
+        }
     }
 }

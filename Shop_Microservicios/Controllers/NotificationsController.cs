@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Shop_Microservicios.ApiClients;
-
+using Shop_Microservicios.Models.Api.Notification;
 namespace Shop_Microservicios.Controllers
 {
     public class NotificationsController : Controller
@@ -33,5 +33,8 @@ namespace Shop_Microservicios.Controllers
             await _notifications.MarkReadAsync(id);
             return RedirectToAction(nameof(Inbox));
         }
+
+     
+
     }
 }
